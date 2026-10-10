@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: cloudbridge-minecraft
+    runtime: node
+    plan: starter
+    rootDir: api
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    disk:
+      name: cloudbridge-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATA_DIR
+        value: /var/data
+      - key: ADMIN_TOKEN
+        sync: false
+      - key: BRIDGE_TOKEN
+        sync: false

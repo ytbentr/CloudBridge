@@ -1,14 +1,14 @@
 name: CloudBridge
-version: 1.1.0
+version: 1.2.0
 main: com.cloudbridge.CloudBridge
 api-version: '1.20'
 author: CloudBridge
-description: Render cloud catalog and remote configuration bridge
+description: Cloud catalog, remote configuration and authenticated plugin downloads
 commands:
   cloud:
     description: CloudBridge commands
     usage: /cloud help
 permissions:
   cloudbridge.admin:
-    description: Allows manual CloudBridge sync
+    description: Allows CloudBridge admin commands including downloading catalog JARs
     default: op

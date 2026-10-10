@@ -1,5 +1,5 @@
 # Render service base URL, no trailing slash
-api-url: "https://YOUR-SERVICE.onrender.com"
+api-url: "https://cloudbridge-guwt.onrender.com"
 # Must exactly match Render's BRIDGE_TOKEN environment variable.
 # Keep this secret; do not publish this file with a real token.
 bridge-token: "CHANGE_ME"

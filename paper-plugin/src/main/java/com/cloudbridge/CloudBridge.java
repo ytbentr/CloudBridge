@@ -18,6 +18,9 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.net.URLEncoder;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -43,7 +46,7 @@ public final class CloudBridge extends JavaPlugin implements Listener {
         Bukkit.getScheduler().runTaskAsynchronously(this, this::syncFeatures);
         Bukkit.getScheduler().runTaskTimerAsynchronously(this, this::syncFeatures, 20L * 30, 20L * 30);
         getLogger().info("CloudBridge açıldı. API: " + baseUrl);
-        getLogger().warning("Bulut kataloğundaki JAR dosyaları çalıştırılmaz; yalnızca desteklenen CloudBridge özellikleri eşitlenir.");
+        getLogger().info("Bulut JAR yüklemek için: /cloud install <dosya.jar> — ardından sunucuyu yeniden başlat.");
     }
 
     private HttpRequest.Builder request(String url) {
@@ -95,15 +98,47 @@ public final class CloudBridge extends JavaPlugin implements Listener {
             sender.sendMessage("§bCloudBridge §7komutları:");
             sender.sendMessage("§f/cloud status §7- bulut bağlantı durumu");
             sender.sendMessage("§f/cloud sync §7- özellikleri hemen eşitle (admin)");
-            sender.sendMessage("§f/cloud plugins §7- bulutta saklanan JAR kataloğu");
+            sender.sendMessage("§f/cloud plugins §7- buluttaki JAR kataloğu");
+            sender.sendMessage("§f/cloud install <dosya.jar> §7- JAR'ı sunucunun plugins klasörüne indirir");
             sender.sendMessage("§f/cloud worlds §7- bulut dünya arşivi kataloğu");
-            sender.sendMessage("§7Not: Katalog JAR'ları uzaktan çalıştırılmaz.");
+            sender.sendMessage("§eİndirme sonrası sunucuyu yeniden başlatmalısın.");
             return true;
         }
         if (args[0].equalsIgnoreCase("status")) {
             sender.sendMessage("§bCloudBridge §7- Son eşitleme: §f" + lastSync);
             sender.sendMessage(lastError.isBlank() ? "§aSon API isteğinde hata yok." : "§cSon hata: " + lastError);
-            sender.sendMessage("§7Bulut dosyaları: saklanır/listelenir; otomatik yüklenmez.");
+            sender.sendMessage("§7Son API bağlantısı ve özellik eşitlemesi durumu yukarıda.");
+            return true;
+        }
+        if (args[0].equalsIgnoreCase("install")) {
+            if (!sender.hasPermission("cloudbridge.admin")) { sender.sendMessage("§cBu komut için yetkin yok."); return true; }
+            if (args.length < 2) { sender.sendMessage("§cKullanım: /cloud install <dosya.jar>"); return true; }
+            String name = String.join(" ", java.util.Arrays.copyOfRange(args, 1, args.length)).trim();
+            if (!name.toLowerCase(Locale.ROOT).endsWith(".jar") || name.contains("/") || name.contains("\\") || name.equals(".") || name.equals("..")) {
+                sender.sendMessage("§cGeçersiz JAR adı. /cloud plugins ile dosya adını kontrol et."); return true;
+            }
+            sender.sendMessage("§7Buluttan indiriliyor: §f" + name);
+            Bukkit.getScheduler().runTaskAsynchronously(this, () -> {
+                String result;
+                try {
+                    String encoded = URLEncoder.encode(name, StandardCharsets.UTF_8).replace("+", "%20");
+                    HttpResponse<byte[]> response = http.send(request(baseUrl + "/api/files/plugins/" + encoded).GET().build(), HttpResponse.BodyHandlers.ofByteArray());
+                    if (response.statusCode() != 200) throw new IOException("API HTTP " + response.statusCode() + " — dosya yok veya BRIDGE_TOKEN hatalı.");
+                    if (response.body().length == 0) throw new IOException("İndirilen dosya boş.");
+                    Path pluginsDir = getDataFolder().getParentFile().toPath();
+                    Files.createDirectories(pluginsDir);
+                    Path target = pluginsDir.resolve(name).normalize();
+                    if (!target.getParent().equals(pluginsDir.normalize())) throw new IOException("Geçersiz dosya yolu.");
+                    Files.write(target, response.body());
+                    result = "§aJAR indirildi: §f" + name + "§a. Eklentinin çalışması için sunucuyu tamamen yeniden başlat.";
+                    getLogger().info("Bulut JAR indirildi: " + name + " (" + response.body().length + " bytes). Sunucu yeniden başlatılmalı.");
+                } catch (Exception e) {
+                    result = "§cİndirme başarısız: " + (e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage());
+                    getLogger().warning("Bulut JAR indirme başarısız: " + e.getMessage());
+                }
+                final String message = result;
+                Bukkit.getScheduler().runTask(this, () -> sender.sendMessage(message));
+            });
             return true;
         }
         if (args[0].equalsIgnoreCase("sync")) {
@@ -125,7 +160,7 @@ public final class CloudBridge extends JavaPlugin implements Listener {
                     Bukkit.getScheduler().runTask(this, () -> {
                         sender.sendMessage("§bCloudBridge §7- buluttaki " + type + " (" + names.size() + ")");
                         if (names.isEmpty()) sender.sendMessage("§7Henüz dosya yok."); else names.forEach(n -> sender.sendMessage("§f- §a" + n));
-                        if (type.equals("plugins")) sender.sendMessage("§eBunlar katalog dosyalarıdır; CloudBridge bunları çalıştırmaz.");
+                        if (type.equals("plugins")) sender.sendMessage("§7Yüklemek için: /cloud install <dosya.jar> — ardından sunucuyu yeniden başlat.");
                     });
                 } catch (Exception e) { Bukkit.getScheduler().runTask(this, () -> sender.sendMessage("§cBulut bağlantı hatası: " + e.getMessage())); }
             }); return true;

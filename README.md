@@ -62,3 +62,14 @@ Render servis URL'sini tarayıcıda aç. Yönetici bölümüne `ADMIN_TOKEN` de�
 - Buluta yüklenen JAR dosyaları kod çalıştırabilir; indirip kurmadan önce kaynağına güven.
 - CloudBridge buluttan kod indirmez veya çalıştırmaz; sadece sabit olarak tanımlanmış özellik yapılandırmasını uygular.
 - Render kalıcı diskindeki `/var/data` dosyaları deploy ve yeniden başlatmalar arasında korunur. Disk yalnızca tek servis örneğine bağlıdır.
+
+
+## Buluttaki JAR dosyasını Paper sunucusuna kurma (v1.2.0)
+
+1. Render Environment bölümünde `BRIDGE_TOKEN` tanımlı olmalı; Paper sunucusundaki `plugins/CloudBridge/config.yml` içindeki `bridge-token` bununla birebir aynı olmalı. Token değerini paylaşmayın.
+2. Yönetim panelinden bir `.jar` dosyası yükleyin. Dosya Render kataloğunda saklanır.
+3. Oyunda OP yetkili hesapla `/cloud plugins` yazıp tam dosya adını görün.
+4. `/cloud install DosyaAdi.jar` komutunu kullanın. Bu komut JAR'ı CloudBridge'in bulunduğu Paper sunucusunun `plugins` klasörüne indirir.
+5. Sunucuyu **tamamen yeniden başlatın**. Sonra eklentinin konsolda etkinleştiğini kontrol edin.
+
+**Güvenlik:** Yalnızca kaynağına güvendiğiniz JAR dosyalarını kurun; bir Paper eklentisi sunucuda Java kodu çalıştırabilir. Bu komut JAR'ı canlı olarak yüklemez, güvenli şekilde dosyaya indirir; çalışması için yeniden başlatma gerekir. Render tarafındaki kopya da katalogda kalır.

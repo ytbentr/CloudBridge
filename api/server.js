@@ -66,8 +66,8 @@ app.get('/api/files', (req, res) => {
   if (req.query.type && !['plugins', 'worlds'].includes(req.query.type)) return res.status(400).json({ error: 'type plugins veya worlds olmalı.' });
   res.json(req.query.type ? { [req.query.type]: c[req.query.type] } : c);
 });
-// This endpoint serves cataloged files for download only. CloudBridge never loads these JARs.
-app.get('/api/files/:type/:name', (req, res) => {
+// Only the authenticated CloudBridge server can download cataloged files for installation.
+app.get('/api/files/:type/:name', bridge, (req, res) => {
   if (!['plugins', 'worlds'].includes(req.params.type)) return res.status(400).json({ error: 'Geçersiz tür.' });
   let name; try { name = cleanName(req.params.name); } catch { return res.status(400).json({ error: 'Geçersiz dosya adı.' }); }
   const item = readCatalog()[req.params.type].find(x => x.name === name);
@@ -86,7 +86,7 @@ app.post('/api/upload/:type', admin, (req, res) => {
     const i = c[req.params.type].findIndex(x => x.name === item.name);
     if (i >= 0) c[req.params.type][i] = item; else c[req.params.type].push(item);
     c[req.params.type].sort((a, b) => a.name.localeCompare(b.name)); writeJson(CATALOG, c);
-    res.json({ ok: true, file: item, note: 'Dosya bulutta saklandı; Paper üzerinde otomatik çalıştırılmaz.' });
+    res.json({ ok: true, file: item, note: 'Dosya bulutta saklandı. Sunucuya indirmek için oyunda /cloud install <dosya.jar> kullanın; sonra sunucuyu yeniden başlatın.' });
   });
 });
 app.delete('/api/files/:type/:name', admin, (req, res) => {
